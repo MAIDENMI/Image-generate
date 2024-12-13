@@ -23,7 +23,7 @@ const Home = ({}: HomeProps) => {
   const [error, setError] = React.useState("");
   const [isSaved, setIsSaved] = React.useState(false);
 
-  // Demo configuration: Change this value to generate different numbers of variations
+  // Change this value to generate different numbers of variations
   const numberOfSamples = 1; // Try values 1-4 for different results
 
   /**
