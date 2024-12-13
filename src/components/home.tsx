@@ -24,7 +24,7 @@ const Home = ({}: HomeProps) => {
   const [isSaved, setIsSaved] = React.useState(false);
 
   // Demo configuration: Change this value to generate different numbers of variations
-  const numberOfSamples = 3; // Try values 1-4 for different results
+  const numberOfSamples = 1; // Try values 1-4 for different results
 
   /**
    * Handles the image generation process
