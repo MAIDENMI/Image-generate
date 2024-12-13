@@ -1,75 +1,121 @@
-const STABILITY_API_KEY = import.meta.env.VITE_STABILITY_API_KEY;
+import React from "react";
+import PromptPanel from "./ImageGenerator/PromptPanel";
+import OutputPanel from "./ImageGenerator/OutputPanel";
+import { generateImage } from "@/lib/stability";
+
+interface HomeProps {}
 
 /**
- * Generates one or more images using the Stability AI API
- * @param prompt - The text description of the image to generate
- * @param size - Desired image dimensions (e.g., "1024x1024")
- * @param samples - Number of image variations to generate (default: 1)
- * @returns Promise<string[]> - Array of base64 encoded image URLs
+ * Main component for the AI image generation interface
+ * Manages the state and coordination between input and output panels
  */
-export async function generateImage(
-  prompt: string,
-  size: string,
-  samples: number = 1,
-) {
-  try {
-    // Log the request parameters for debugging
-    console.log("Sending request to Stability AI with:", {
-      prompt,
-      size,
-      samples,
-    });
+const Home = ({}: HomeProps) => {
+  // State for tracking generation status and results
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [generatedImages, setGeneratedImages] = React.useState<
+    Array<{
+      url: string;
+      prompt: string;
+      dimensions: string;
+      generatedAt: Date;
+    }>
+  >([]);
+  const [error, setError] = React.useState("");
+  const [isSaved, setIsSaved] = React.useState(false);
 
-    // Make API request to Stability AI
-    const response = await fetch(
-      "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${STABILITY_API_KEY}`,
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          text_prompts: [{ text: prompt, weight: 1 }],
-          cfg_scale: 7, // Controls how closely the image follows the prompt
-          height: parseInt(size.split("x")[0]),
-          width: parseInt(size.split("x")[0]),
-          samples, // Number of images to generate
-          steps: 50, // Higher values = higher quality but slower
-        }),
-      },
-    );
+  // Demo configuration: Change this value to generate different numbers of variations
+  const numberOfSamples = 3; // Try values 1-4 for different results
 
-    // Handle API errors
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to generate image");
+  /**
+   * Handles the image generation process
+   * @param prompt - User's text description
+   * @param dimensions - Selected image size
+   * @param samples - Number of variations to generate
+   */
+  const handleGenerate = async (
+    prompt: string,
+    dimensions: string,
+    samples: number,
+  ) => {
+    setIsGenerating(true);
+    setError("");
+
+    try {
+      // Generate images using Stability AI
+      const imageUrls = await generateImage(prompt, dimensions, samples);
+      const urlsArray = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+
+      // Update state with generated images
+      setGeneratedImages(
+        urlsArray.map((url) => ({
+          url,
+          prompt,
+          dimensions,
+          generatedAt: new Date(),
+        })),
+      );
+    } catch (err: any) {
+      console.error("Error in handleGenerate:", err);
+      setError(err?.message || "Failed to generate image. Please try again.");
+      setGeneratedImages([]); // Clear previous images on error
+    } finally {
+      setIsGenerating(false);
     }
+  };
 
-    const result = await response.json();
-
-    // Validate response format
-    if (!result.artifacts || !Array.isArray(result.artifacts)) {
-      throw new Error("Invalid response format from Stability AI");
+  // Handlers for image actions
+  const handleDownload = () => {
+    if (generatedImages[0]?.url) {
+      window.open(generatedImages[0].url, "_blank");
     }
+  };
 
-    // Convert base64 images to data URLs
-    const images = result.artifacts.map(
-      (artifact: any) => `data:image/png;base64,${artifact.base64}`,
-    );
+  const handleSave = () => {
+    setIsSaved(!isSaved);
+  };
 
-    // Ensure at least one image was generated
-    if (images.length === 0) {
-      throw new Error("No images were generated");
-    }
+  return (
+    <div className="min-h-screen w-full bg-background p-6">
+      <div className="container mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6 justify-center items-start">
+          {/* Input section for prompt and controls */}
+          <PromptPanel
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            samples={numberOfSamples}
+          />
 
-    return images;
-  } catch (error) {
-    console.error("Error generating image:", error);
-    if (error instanceof Error) {
-      throw new Error(`Stability AI Error: ${error.message}`);
-    }
-    throw new Error("Failed to generate image. Please try again.");
-  }
-}
+          {/* Output section for displaying generated images */}
+          <div className="flex flex-col gap-6">
+            {generatedImages.map((image, index) => (
+              <OutputPanel
+                key={index}
+                imageUrl={image.url}
+                isLoading={isGenerating}
+                error={error}
+                dimensions={image.dimensions}
+                prompt={image.prompt}
+                generatedAt={image.generatedAt}
+                onDownload={handleDownload}
+                onSave={handleSave}
+                isSaved={isSaved}
+              />
+            ))}
+            {/* Placeholder panel when no images exist */}
+            {generatedImages.length === 0 && (
+              <OutputPanel
+                isLoading={isGenerating}
+                error={error}
+                onDownload={handleDownload}
+                onSave={handleSave}
+                isSaved={isSaved}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Home;
