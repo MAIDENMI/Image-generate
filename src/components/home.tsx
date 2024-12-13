@@ -23,8 +23,8 @@ const Home = ({}: HomeProps) => {
   const [error, setError] = React.useState("");
   const [isSaved, setIsSaved] = React.useState(false);
 
-  // Change this value to generate different numbers of variations
-  const numberOfSamples = 1; // Try values 1-4 for different results
+  // Demo configuration: Change this value to generate different numbers of variations
+  const numberOfSamples = 3; // Try values 1-4 for different results
 
   /**
    * Handles the image generation process
@@ -116,6 +116,9 @@ const Home = ({}: HomeProps) => {
       </div>
     </div>
   );
+};
+
+export default Home;
 };
 
 export default Home;
